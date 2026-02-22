@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import type { ChannelItem } from "@/lib/api";
 import { ChannelList } from "@/components/conversations/channel-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 export default function ConversationsPage() {
@@ -51,17 +52,40 @@ export default function ConversationsPage() {
     );
   }
 
+  const codeReviewChannels = channels.filter(c => c.has_code_review);
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Conversations</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Channels</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChannelList channels={channels} onDelete={handleDelete} />
-        </CardContent>
-      </Card>
+      
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">All Channels</TabsTrigger>
+          <TabsTrigger value="reviews">Code Reviews</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">All Channels</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChannelList channels={channels} onDelete={handleDelete} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="reviews">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Code Review Sessions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChannelList channels={codeReviewChannels} onDelete={handleDelete} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -36,6 +36,7 @@ export interface ProviderItem {
   model: string;
   free: boolean;
   configured: boolean;
+  enabled: boolean;
   is_primary: boolean;
 }
 
@@ -48,26 +49,118 @@ export interface ChannelItem {
   channel_id: string;
   message_count: number;
   last_active: string;
+  has_code_review: boolean;
 }
 
 export interface MessageItem {
   role: string;
   content: string;
   provider: string | null;
+  category: string | null;
   created_at: string;
 }
 
 export interface BotStatus {
   online: boolean;
-  latency: number | null;
-  guilds: number;
-  uptime: number | null;
+  username: string | null;
+  latency_ms: number | null;
+  guild_count: number;
+  guilds: Array<{
+    id: string;
+    name: string;
+    member_count: number;
+  }>;
+}
+
+export interface BotStats {
+  daily_messages: Array<{ day: string; count: number }>;
+  provider_distribution: Array<{ name: string; value: number }>;
+  total_messages: number;
+  total_channels: number;
+  total_guilds: number;
+}
+
+export interface DiscordChannel {
+  id: string;
+  name: string;
+  guild_name: string;
+  guild_id: string;
 }
 
 export interface TestProviderResult {
   success: boolean;
   message: string;
   latency_ms?: number;
+}
+
+export interface FAQItem {
+  id: number;
+  guild_id: string;
+  question: string;
+  answer: string;
+  match_keywords: string;
+  times_used: number;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface PermissionItem {
+  command_name: string;
+  guild_id: string;
+  role_id: string;
+}
+
+export interface ChannelPrompt {
+  channel_id: string;
+  guild_id: string;
+  system_prompt: string;
+}
+
+export interface ChannelProviderItem {
+  channel_id: string;
+  guild_id: string;
+  provider: string;
+}
+
+export interface AnalyticsSummary {
+  daily_events: Array<{ day: string; count: number }>;
+  provider_distribution: Array<{ name: string; value: number }>;
+  top_channels: Array<{ id: string; count: number }>;
+  latency_history: Array<{ day: string; latency: number }>;
+  total_rate_limited: number;
+  cost_by_provider: Record<string, number>;
+  total_cost: number;
+}
+
+export interface AnalyticsEvent {
+  id: number;
+  event_type: string;
+  guild_id: string | null;
+  channel_id: string | null;
+  user_id: string | null;
+  provider: string | null;
+  tokens_used: number | null;
+  latency_ms: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  estimated_cost: number | null;
+  created_at: string;
+}
+
+export interface PluginItem {
+  id: string;
+  name: string;
+  version: string;
+  author: string;
+  description: string;
+  cog: string;
+  enabled: boolean;
+}
+
+export interface RoleItem {
+  id: string;
+  name: string;
+  color: string;
 }
 
 export const api = {
@@ -103,6 +196,13 @@ export const api = {
       token,
     }),
 
+  toggleProvider: (token: string, provider: string, enabled: boolean) =>
+    apiFetch<{ status: string; enabled: boolean }>("/api/providers/toggle", {
+      method: "PUT",
+      body: JSON.stringify({ provider, enabled }),
+      token,
+    }),
+
   setPrimaryProvider: (token: string, provider: string) =>
     apiFetch<{ status: string; primary: string }>("/api/providers/primary", {
       method: "PUT",
@@ -113,6 +213,12 @@ export const api = {
   // Bot
   getBotStatus: (token: string) =>
     apiFetch<BotStatus>("/api/bot/status", { token }),
+
+  getBotStats: (token: string) =>
+    apiFetch<BotStats>("/api/bot/stats", { token }),
+
+  getChannels: (token: string) =>
+    apiFetch<{ channels: DiscordChannel[] }>("/api/bot/channels", { token }),
 
   // Conversations
   getConversations: (token: string) =>
@@ -130,14 +236,127 @@ export const api = {
       token,
     }),
 
+  // FAQs
+  getFAQs: (token: string, guildId?: string) =>
+    apiFetch<{ faqs: FAQItem[] }>(`/api/faqs${guildId ? `?guild_id=${guildId}` : ""}`, { token }),
+
+  createFAQ: (token: string, data: { guild_id: string; question: string; answer: string; match_keywords: string }) =>
+    apiFetch<{ status: string }>("/api/faqs", {
+      method: "POST",
+      body: JSON.stringify(data),
+      token,
+    }),
+
+  deleteFAQ: (token: string, faqId: number) =>
+    apiFetch<{ status: string }>(`/api/faqs/${faqId}`, {
+      method: "DELETE",
+      token,
+    }),
+
   // Wizard
   getWizardStatus: (token: string) =>
-    apiFetch<{ completed: boolean; current_step: number }>("/api/wizard/status", { token }),
+    apiFetch<{ completed: boolean; current_step: number; data: Record<string, any> }>("/api/wizard/status", { token }),
+
+  updateWizardStep: (token: string, step: number, data: any) =>
+    apiFetch<{ status: string }>("/api/wizard/step", {
+      method: "PUT",
+      body: JSON.stringify({ step, data }),
+      token,
+    }),
 
   completeWizard: (token: string, data: Record<string, string>) =>
     apiFetch<{ status: string }>("/api/wizard/complete", {
       method: "POST",
+      body: JSON.stringify({ config: data }),
+      token,
+    }),
+
+  // Permissions
+  getPermissions: (token: string, guildId?: string) =>
+    apiFetch<{ permissions: PermissionItem[] }>(`/api/permissions${guildId ? `?guild_id=${guildId}` : ""}`, { token }),
+
+  createPermission: (token: string, data: PermissionItem) =>
+    apiFetch<{ status: string }>("/api/permissions", {
+      method: "POST",
       body: JSON.stringify(data),
+      token,
+    }),
+
+  deletePermission: (token: string, commandName: string, guildId: string, roleId: string) =>
+    apiFetch<{ status: string }>(`/api/permissions/${commandName}/${guildId}/${roleId}`, {
+      method: "DELETE",
+      token,
+    }),
+
+  getRoles: (token: string, guildId: string) =>
+    apiFetch<{ roles: RoleItem[] }>(`/api/permissions/roles/${guildId}`, { token }),
+
+  // Prompts
+  getPrompts: (token: string, guildId?: string) =>
+    apiFetch<{ prompts: ChannelPrompt[] }>(`/api/prompts${guildId ? `?guild_id=${guildId}` : ""}`, { token }),
+
+  setPrompt: (token: string, data: ChannelPrompt) =>
+    apiFetch<{ status: string }>("/api/prompts", {
+      method: "POST",
+      body: JSON.stringify(data),
+      token,
+    }),
+
+  deletePrompt: (token: string, channelId: string) =>
+    apiFetch<{ status: string }>(`/api/prompts/${channelId}`, {
+      method: "DELETE",
+      token,
+    }),
+
+  // Channel Providers
+  getChannelProviders: (token: string, guildId?: string) =>
+    apiFetch<{ channel_providers: ChannelProviderItem[] }>(`/api/channel-providers${guildId ? `?guild_id=${guildId}` : ""}`, { token }),
+
+  setChannelProvider: (token: string, data: ChannelProviderItem) =>
+    apiFetch<{ status: string }>("/api/channel-providers", {
+      method: "POST",
+      body: JSON.stringify(data),
+      token,
+    }),
+
+  deleteChannelProvider: (token: string, channelId: string) =>
+    apiFetch<{ status: string }>(`/api/channel-providers/${channelId}`, {
+      method: "DELETE",
+      token,
+    }),
+
+  // Analytics
+  getAnalyticsSummary: (token: string, days: number = 7) =>
+    apiFetch<AnalyticsSummary>(`/api/analytics/summary?days=${days}`, { token }),
+
+  getAnalyticsHistory: (token: string, limit: number = 100) =>
+    apiFetch<{ history: AnalyticsEvent[] }>(`/api/analytics/history?limit=${limit}`, { token }),
+
+  // Plugins
+  getPlugins: (token: string) =>
+    apiFetch<{ plugins: PluginItem[] }>("/api/plugins", { token }),
+
+  togglePlugin: (token: string, name: string, enabled: boolean) =>
+    apiFetch<{ status: string }>("/api/plugins/toggle", {
+      method: "POST",
+      body: JSON.stringify({ name, enabled }),
+      token,
+    }),
+
+  reloadPlugin: (token: string, name: string) =>
+    apiFetch<{ status: string }>(`/api/plugins/reload/${name}`, {
+      method: "POST",
+      token,
+    }),
+
+  // Guild Config
+  getGuildConfig: (token: string, guildId: string) =>
+    apiFetch<{ config: Record<string, string> }>(`/api/guilds/${guildId}/config`, { token }),
+
+  updateGuildConfig: (token: string, guildId: string, values: Record<string, string>) =>
+    apiFetch<{ status: string }>(`/api/guilds/${guildId}/config`, {
+      method: "PUT",
+      body: JSON.stringify({ values }),
       token,
     }),
 };

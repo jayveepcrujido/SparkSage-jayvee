@@ -18,8 +18,14 @@ def start_api_server():
 async def _init_database():
     """Initialize the database and seed config from .env."""
     import db
+    import config as cfg
     await db.init_db()
     await db.sync_env_to_db()
+    
+    # Load DB config into the config module variables
+    all_config = await db.get_all_config()
+    cfg.reload_from_db(all_config)
+    print("  Configuration loaded from database.")
 
 
 def main():

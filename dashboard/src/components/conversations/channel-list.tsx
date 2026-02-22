@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import type { ChannelItem } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -33,43 +34,52 @@ export function ChannelList({ channels, onDelete }: ChannelListProps) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Channel ID</TableHead>
-          <TableHead className="text-right">Messages</TableHead>
-          <TableHead>Last Activity</TableHead>
-          <TableHead className="w-12" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {channels.map((ch) => (
-          <TableRow key={ch.channel_id}>
-            <TableCell>
-              <Link
-                href={`/dashboard/conversations/${ch.channel_id}`}
-                className="font-mono text-sm text-primary hover:underline"
-              >
-                #{ch.channel_id}
-              </Link>
-            </TableCell>
-            <TableCell className="text-right">{ch.message_count}</TableCell>
-            <TableCell className="text-sm text-muted-foreground">
-              {formatDate(ch.last_active)}
-            </TableCell>
-            <TableCell>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(ch.channel_id)}
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TableCell>
+    <div className="relative overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Channel ID</TableHead>
+            <TableHead className="text-right">Messages</TableHead>
+            <TableHead>Last Activity</TableHead>
+            <TableHead className="w-12" />
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {channels.map((ch) => (
+            <TableRow key={ch.channel_id}>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/dashboard/conversations/${ch.channel_id}`}
+                    className="font-mono text-sm text-primary hover:underline"
+                  >
+                    #{ch.channel_id}
+                  </Link>
+                  {ch.has_code_review && (
+                    <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-none whitespace-nowrap">
+                      Code Review
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="text-right">{ch.message_count}</TableCell>
+              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                {formatDate(ch.last_active)}
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(ch.channel_id)}
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

@@ -30,7 +30,7 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 # Bot settings
 BOT_PREFIX = os.getenv("BOT_PREFIX", "!")
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1024"))
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "4096"))
 SYSTEM_PROMPT = os.getenv(
     "SYSTEM_PROMPT",
     "You are SparkSage, a helpful and friendly AI assistant in a Discord server. "

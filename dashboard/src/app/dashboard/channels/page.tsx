@@ -32,7 +32,7 @@ export default function ChannelSettingsPage() {
   // Auto-translate states
   const [autoTranslateEnabled, setAutoTranslateEnabled] = useState(false);
   const [autoTranslateTargetLanguage, setAutoTranslateTargetLanguage] = useState("");
-  const [currentAutoTranslateSetting, setCurrentAutoTranslateSetting] = useState<{ enabled: boolean, target_language: string } | null>(null);
+  const [currentAutoTranslateSetting, setCurrentAutoTranslateSetting] = useState<{ enabled: boolean, target_language: string | null } | null>(null);
 
 
   const token = (session as { accessToken?: string })?.accessToken;

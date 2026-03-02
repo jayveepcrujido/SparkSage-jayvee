@@ -114,54 +114,78 @@ def get_guild_roles(guild_id: str) -> list[dict]:
         return []
 
 
+async def get_all_command_names() -> list[str]:
+    """Return a list of all registered slash command names, including subcommands."""
+    if not bot.is_ready():
+        print("[DEBUG] get_all_command_names: Bot not ready yet.")
+        return []
+
+    command_names = set()
+    for command in bot.tree.get_commands(): # Use local commands
+        if isinstance(command, app_commands.Group):
+            for subcommand in command.commands:
+                command_names.add(f"{command.name} {subcommand.name}")
+        else:
+            command_names.add(command.name)
+    
+    print(f"[DEBUG] Found {len(command_names)} commands: {command_names}")
+    return sorted(list(command_names))
+
+
 # --- Events ---
 
 
+_extensions_loaded = False
+
 @bot.event
 async def on_ready():
-    # Initialize database when bot is ready
-    await database.init_db()
-    await database.sync_env_to_db()
+    global _extensions_loaded
+    if not _extensions_loaded:
+        _extensions_loaded = True
+        # Initialize database when bot is ready
+        await database.init_db()
+        await database.sync_env_to_db()
 
-    # Verify intents
-    if not bot.intents.message_content:
-        print("CRITICAL: Message Content Intent is NOT enabled in the code or Discord portal.")
-    if not bot.intents.members:
-        print("CRITICAL: Members Intent is NOT enabled in the code or Discord portal.")
+        # Verify intents
+        if not bot.intents.message_content:
+            print("CRITICAL: Message Content Intent is NOT enabled in the code or Discord portal.")
+        if not bot.intents.members:
+            print("CRITICAL: Members Intent is NOT enabled in the code or Discord portal.")
 
-    await bot.load_extension("cogs.general")
-    await bot.load_extension("cogs.summarize")
-    await bot.load_extension("cogs.code_review")
-    await bot.load_extension("cogs.faq")
-    await bot.load_extension("cogs.onboarding")
-    await bot.load_extension("cogs.permissions")
-    await bot.load_extension("cogs.digest")
-    await bot.load_extension("cogs.moderation")
-    await bot.load_extension("cogs.translate")
-    await bot.load_extension("cogs.plugins")
+        await bot.load_extension("cogs.general")
+        await bot.load_extension("cogs.summarize")
+        await bot.load_extension("cogs.code_review")
+        await bot.load_extension("cogs.faq")
+        await bot.load_extension("cogs.onboarding")
+        await bot.load_extension("cogs.permissions")
+        await bot.load_extension("cogs.digest")
+        await bot.load_extension("cogs.moderation")
+        await bot.load_extension("cogs.translate")
+        await bot.load_extension("cogs.plugins")
 
-    # Initialize Plugins
-    plugin_loader.loader = plugin_loader.PluginLoader(bot)
-    await plugin_loader.loader.load_all_enabled()
+        # Initialize Plugins
+        plugin_loader.loader = plugin_loader.PluginLoader(bot)
+        await plugin_loader.loader.load_all_enabled()
 
-    available = providers.get_available_providers()
-    primary = config.AI_PROVIDER
-    provider_info = config.PROVIDERS.get(primary, {})
+        available = providers.get_available_providers()
+        primary = config.AI_PROVIDER
+        provider_info = config.PROVIDERS.get(primary, {})
 
-    print(f"SparkSage is online as {bot.user}")
-    print(f"Connected to {len(bot.guilds)} guilds:")
-    for g in bot.guilds:
-        print(f" - {g.name} ({g.id})")
-    
-    print(f"Primary provider: {provider_info.get('name', primary)} ({provider_info.get('model', '?')})")
-    print(f"Fallback chain: {' -> '.join(available)}")
+        print(f"SparkSage is online as {bot.user}")
+        print(f"Connected to {len(bot.guilds)} guilds:")
+        for g in bot.guilds:
+            print(f" - {g.name} ({g.id})")
+        
+        print(f"Primary provider: {provider_info.get('name', primary)} ({provider_info.get('model', '?')})")
+        print(f"Fallback chain: {' -> '.join(available)}")
 
-    try:
-        synced = await bot.tree.sync()
-        print(f"Synced {len(synced)} slash command(s)")
-    except Exception as e:
-        print(f"Failed to sync commands: {e}")
-
+        try:
+            synced = await bot.tree.sync()
+            print(f"Synced {len(synced)} slash command(s)")
+        except Exception as e:
+            print(f"Failed to sync commands: {e}")
+    else:
+        print("[DEBUG] Bot is already ready, skipping extension loading.")
 
 @bot.event
 async def on_message(message: discord.Message):

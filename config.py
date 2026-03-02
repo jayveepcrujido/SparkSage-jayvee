@@ -30,7 +30,7 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 # Bot settings
 BOT_PREFIX = os.getenv("BOT_PREFIX", "!")
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1024"))
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "4096"))
 SYSTEM_PROMPT = os.getenv(
     "SYSTEM_PROMPT",
     "You are SparkSage, a helpful and friendly AI assistant in a Discord server. "
@@ -60,6 +60,7 @@ MODERATION_SENSITIVITY = os.getenv("MODERATION_SENSITIVITY", "medium")
 
 # Translation settings
 TRANSLATE_ENABLED = os.getenv("TRANSLATE_ENABLED", "true").lower() == "true"
+AUTO_TRANSLATE_ENABLED = os.getenv("AUTO_TRANSLATE_ENABLED", "false").lower() == "true"
 
 # Rate Limiting settings
 RATE_LIMIT_USER = int(os.getenv("RATE_LIMIT_USER", "5")) # requests per minute
@@ -179,6 +180,7 @@ def reload_from_db(db_config: dict[str, str]):
         "MOD_LOG_CHANNEL_ID": str,
         "MODERATION_SENSITIVITY": str,
         "TRANSLATE_ENABLED": lambda v: str(v).lower() == "true",
+        "AUTO_TRANSLATE_ENABLED": lambda v: str(v).lower() == "true",
         "RATE_LIMIT_USER": int,
         "RATE_LIMIT_GUILD": int,
         "DISABLED_PROVIDERS": str,

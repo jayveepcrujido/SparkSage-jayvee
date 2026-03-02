@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { api } from "@/lib/api";
 import type { ChannelItem, MessageItem } from "@/lib/api";
 import { ChannelList } from "@/components/conversations/channel-list";
@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { MessageList } from "@/components/conversations/message-list";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function ConversationsPage() {
   const { data: session } = useSession();
@@ -19,6 +21,7 @@ export default function ConversationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<MessageItem[]>([]);
   const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const token = (session as { accessToken?: string })?.accessToken;
 
@@ -41,6 +44,7 @@ export default function ConversationsPage() {
   async function performSearch() {
     if (!token || !searchQuery.trim()) return;
     setSearching(true);
+    setHasSearched(true);
     try {
       const res = await api.searchConversations(token, searchQuery);
       setSearchResults(res.results);
@@ -48,6 +52,18 @@ export default function ConversationsPage() {
       toast.error("Search failed");
     } finally {
       setSearching(false);
+    }
+  }
+
+  function clearSearch() {
+    setSearchQuery("");
+    setSearchResults([]);
+    setHasSearched(false);
+  }
+
+  function handleSearchKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      performSearch();
     }
   }
 
@@ -70,39 +86,80 @@ export default function ConversationsPage() {
     );
   }
 
-  // show search results if query present
-  if (searchQuery) {
+  // show search results if search has been performed
+  if (hasSearched) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">
-          Search Results for {`"${searchQuery}"`}
-        </h1>
-        <div className="flex gap-2">
-          <input
-            className="input"
-            placeholder="Search conversations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button className="btn" onClick={performSearch} disabled={searching}>
-            {searching ? <Loader2 className="animate-spin h-4 w-4" /> : "Go"}
-          </button>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">
+            Search Results for {`"${searchQuery}"`}
+          </h1>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearSearch}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Clear
+          </Button>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Messages</CardTitle>
-          </CardHeader>
-          <CardContent>
+
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleSearchKeyPress}
+              className="pl-10"
+              disabled={searching}
+            />
+          </div>
+          <Button
+            onClick={performSearch}
+            disabled={searching || !searchQuery.trim()}
+            className="gap-2"
+          >
             {searching ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Searching...
+              </>
             ) : (
-              <MessageList messages={searchResults} />
+              <>
+                <Search className="h-4 w-4" />
+                Search
+              </>
             )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+          </Button>
+        </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Messages
+            {!searching && searchResults.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({searchResults.length})
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {searching ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <MessageList messages={searchResults} />
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
   const codeReviewChannels = channels.filter((c) => c.has_code_review);
 
@@ -110,15 +167,34 @@ export default function ConversationsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Conversations</h1>
       <div className="flex gap-2">
-        <input
-          className="input"
-          placeholder="Search conversations..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button className="btn" onClick={performSearch} disabled={searching}>
-          {searching ? <Loader2 className="animate-spin h-4 w-4" /> : "Go"}
-        </button>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={handleSearchKeyPress}
+            className="pl-10"
+            disabled={searching}
+          />
+        </div>
+        <Button
+          onClick={performSearch}
+          disabled={searching || !searchQuery.trim()}
+          className="gap-2"
+        >
+          {searching ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Searching...
+            </>
+          ) : (
+            <>
+              <Search className="h-4 w-4" />
+              Search
+            </>
+          )}
+        </Button>
       </div>
 
       <Tabs defaultValue="all" className="w-full">
